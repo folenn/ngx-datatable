@@ -1,0 +1,288 @@
+<section fxFlex="100%" class="header-section">
+  <mat-form-field fxFlex="1 1 100%" [formGroup]="filterFormGroup">
+    <input matInput (keyup)="applyFilter($event.target.value)" formControlName="filter" data-testid="inputFilter" placeholder="Filter" />
+  </mat-form-field>
+</section>
+<form [formGroup]="tableFormGroup" *ngIf="!isCompactView; else compactView" fxFlex="1 1 100%" class="table-container">
+  <ng-container *ngIf="customColumnsIds?.length">
+    <mat-table [dataSource]="dataSource" formArrayName="columns" class="table" matSort multiTemplateDataRows>
+      <!--  Selection column  -->
+      <ng-container matColumnDef="select">
+        <mat-header-cell *matHeaderCellDef fxFlex="0 0 auto" class="table__selection">
+          <mat-checkbox
+            (change)="$event ? masterToggle() : null"
+            [checked]="selection.hasValue() && isAllSelected()"
+            [indeterminate]="selection.hasValue() && !isAllSelected()"
+            [aria-label]="checkboxLabel()"
+          >
+          </mat-checkbox>
+        </mat-header-cell>
+        <mat-cell *matCellDef="let row" fxFlex="0 0 auto" class="table__selection">
+          <mat-checkbox
+            (click)="$event.preventDefault()"
+            (change)="$event ? selection.toggle(row) : null"
+            [checked]="selection.isSelected(row)"
+            [aria-label]="checkboxLabel(row)"
+          >
+          </mat-checkbox>
+        </mat-cell>
+      </ng-container>
+      <!--  #Selection column  -->
+
+      <!--  Displayed columns  -->
+      <ng-container *ngIf="!isCompactView">
+        <ng-container *ngFor="let column of customColumnsIds; let index = index" matColumnDef="{{ column }}">
+          <ng-container *ngFor="let settings of displayedColumns">
+            <ng-container *ngIf="settings?.propertyName === column">
+              <mat-header-cell *matHeaderCellDef [mat-sort-header]="column" fxLayoutAlign="flex-start center">
+                {{ settings?.name }}
+              </mat-header-cell>
+            </ng-container>
+          </ng-container>
+          <mat-cell *matCellDef="let row" fxLayoutAlign="flex-start center">
+            <div *ngIf="editedElement !== row">
+              {{ row[column] }}
+            </div>
+            <div *ngIf="editedElement === row" fxFlex="1 1 100%">
+              <mat-form-field fxFlex="1 1 90%" [formGroupName]="index">
+                <input
+                  matInput
+                  type="text"
+                  (load)="tableFormGroup.get(['columns', index, column]).patchValue(row[column])"
+                  (mousedown)="$event.stopPropagation()"
+                  (click)="onEditInputClick($event)"
+                  [value]="row[column]"
+                  [formControlName]="column"
+                />
+              </mat-form-field>
+            </div>
+          </mat-cell>
+        </ng-container>
+      </ng-container>
+      <!--  #Displayed columns  -->
+
+      <!--  Expanded columns  -->
+      <ng-container matColumnDef="expandedDetail">
+        <mat-cell *matCellDef="let row" fxLayout="row wrap">
+          <ng-container *ngFor="let column of detailsColumns; let index = index">
+            <div fxFlex="1 1 100%" fxLayout="row wrap">
+              <div fxFlex="1 1 100%" class="cell__heading">
+                <b>{{ column?.name }}</b>
+              </div>
+              <div fxFlex="1 1 100%" *ngIf="editedElement !== row">
+                {{ row[column?.propertyName] }}
+              </div>
+              <div fxFlex="1 1 100%" *ngIf="editedElement === row">
+                <mat-form-field fxFlex="1 1 90%" [formGroupName]="customColumnsIds?.length + index">
+                  <input
+                    matInput
+                    type="text"
+                    (mousedown)="$event.stopPropagation()"
+                    (click)="onEditInputClick($event)"
+                    [formControlName]="column?.propertyName"
+                    [value]="row[column?.propertyName]"
+                  />
+                </mat-form-field>
+              </div>
+            </div>
+          </ng-container>
+        </mat-cell>
+      </ng-container>
+      <!--  #Expanded columns  -->
+
+      <!--  Actions column  -->
+      <ng-container matColumnDef="actions">
+        <mat-header-cell *matHeaderCellDef fxFlex="0 0 auto" fxLayoutAlign="flex-end center">
+          <button mat-icon-button (click)="customRowAddCallback ? onCustomRowAdded() : onRowAdded()" type="button">
+            <mat-icon class="mat-action-icon">library_add</mat-icon>
+          </button>
+        </mat-header-cell>
+        <mat-cell *matCellDef="let row" fxFlex="0 0 auto" fxLayoutAlign="flex-end center">
+          <ng-container *ngIf="!editedElement">
+            <div class="actions">
+              <button mat-icon-button *ngIf="!deletableOnly" (mousedown)="$event.stopPropagation()" (click)="onRowStartedEditing($event, row)">
+                <mat-icon class="mat-action-icon">edit</mat-icon>
+              </button>
+              <button mat-icon-button (click)="onRowDeleted($event, row)" (mousedown)="$event.stopPropagation()">
+                <mat-icon class="mat-action-icon">delete</mat-icon>
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="row === editedElement">
+            <div class="actions actions--active">
+              <button mat-icon-button (mousedown)="$event.stopPropagation()" (click)="onRowSaved($event, row)">
+                <mat-icon class="mat-action-icon">save</mat-icon>
+              </button>
+              <button mat-icon-button (mousedown)="$event.stopPropagation()" (click)="onRowCancelledEditing($event, row)">
+                <mat-icon class="mat-action-icon">cancel</mat-icon>
+              </button>
+            </div>
+          </ng-container>
+        </mat-cell>
+      </ng-container>
+      <!-- #Actions column  -->
+
+      <!--  Rows setup  -->
+      <mat-header-row *matHeaderRowDef="columnsIds; sticky: true" class="background-color--app-area-sub"></mat-header-row>
+      <mat-row
+        *matRowDef="let row; columns: columnsIds"
+        class="row"
+        (click)="expandRow($event, row)"
+        (mouseover)="onSelectionByMouseMove($event, row)"
+        (mousedown)="onRowMouseDown($event, row)"
+        [ngClass]="{ 'row--active': isRowExpanded(row) }"
+      >
+      </mat-row>
+      <mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        style="overflow: hidden; height: 0; min-height: 0; visibility: hidden;"
+        [@detailExpand]="isRowExpanded(row) && expandable ? 'expanded' : 'collapsed'"
+      >
+      </mat-row>
+      <!--  #Rows setup  -->
+    </mat-table>
+  </ng-container>
+</form>
+<ng-template #compactView>
+  <form [formGroup]="tableFormGroup" fxFlex="1 1 100%">
+    <mat-table [dataSource]="dataSource" formArrayName="columns" class="table" matSort multiTemplateDataRows>
+      <!--  Selection column  -->
+      <ng-container matColumnDef="select">
+        <mat-header-cell *matHeaderCellDef fxFlex="0 0 auto" class="table__selection">
+          <mat-checkbox
+            (change)="$event ? masterToggle() : null"
+            [checked]="selection.hasValue() && isAllSelected()"
+            [indeterminate]="selection.hasValue() && !isAllSelected()"
+            [aria-label]="checkboxLabel()"
+          >
+          </mat-checkbox>
+        </mat-header-cell>
+        <mat-cell *matCellDef="let row" fxFlex="0 0 auto" class="table__selection">
+          <mat-checkbox
+            (click)="$event.preventDefault()"
+            (change)="$event ? selection.toggle(row) : null"
+            [checked]="selection.isSelected(row)"
+            [aria-label]="checkboxLabel(row)"
+          >
+          </mat-checkbox>
+        </mat-cell>
+      </ng-container>
+      <!--  #Selection column  -->
+
+      <!--  Expanded columns  -->
+      <ng-container matColumnDef="expandedDetail">
+        <mat-cell *matCellDef="let row" fxLayout="row wrap">
+          <ng-container *ngFor="let column of detailsColumns; let index = index">
+            <div fxFlex="1 1 100%" fxLayout="row wrap">
+              <div fxFlex="1 1 100%" class="cell__heading">
+                <b>{{ column?.name }}</b>
+              </div>
+              <div fxFlex="1 1 100%" *ngIf="editedElement !== row">
+                {{ row[column?.propertyName] }}
+              </div>
+              <div fxFlex="1 1 100%" *ngIf="editedElement === row">
+                <mat-form-field fxFlex="1 1 90%" [formGroupName]="customColumnsIds?.length + index">
+                  <input
+                    matInput
+                    type="text"
+                    (mousedown)="$event.stopPropagation()"
+                    (click)="onEditInputClick($event)"
+                    [formControlName]="column?.propertyName"
+                    [value]="row[column?.propertyName]"
+                  />
+                </mat-form-field>
+              </div>
+            </div>
+          </ng-container>
+        </mat-cell>
+      </ng-container>
+      <!--  #Expanded columns  -->
+
+      <!--  Actions column  -->
+      <ng-container matColumnDef="actions">
+        <mat-header-cell *matHeaderCellDef fxFlex="0 0 auto" fxLayoutAlign="flex-end center">
+          <button mat-icon-button (click)="customRowAddCallback ? onCustomRowAdded() : onRowAdded()" type="button">
+            <mat-icon class="mat-action-icon">library_add</mat-icon>
+          </button>
+        </mat-header-cell>
+        <mat-cell *matCellDef="let row" fxFlex="0 0 auto" fxLayoutAlign="flex-end center">
+          <ng-container *ngIf="!editedElement">
+            <div class="actions">
+              <button mat-icon-button *ngIf="!deletableOnly" (mousedown)="$event.stopPropagation()" (click)="onRowStartedEditing($event, row)">
+                <mat-icon class="mat-action-icon">edit</mat-icon>
+              </button>
+              <button mat-icon-button (click)="onRowDeleted($event, row)">
+                <mat-icon class="mat-action-icon">delete</mat-icon>
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="row === editedElement">
+            <div class="actions actions--active">
+              <button mat-icon-button (mousedown)="$event.stopPropagation()" (click)="onRowSaved($event, row)">
+                <mat-icon class="mat-action-icon">save</mat-icon>
+              </button>
+              <button mat-icon-button (mousedown)="$event.stopPropagation()" (click)="onRowCancelledEditing($event, row)">
+                <mat-icon class="mat-action-icon">cancel</mat-icon>
+              </button>
+            </div>
+          </ng-container>
+        </mat-cell>
+      </ng-container>
+      <!-- #Actions column  -->
+
+      <!--  Compact view column  -->
+      <ng-container *ngIf="isCompactView" matColumnDef="compact">
+        <mat-header-cell *matHeaderCellDef></mat-header-cell>
+        <mat-cell *matCellDef="let row" fxLayout="row wrap" class="cell">
+          <ng-container *ngFor="let column of customColumnsIds; let index = index">
+            <ng-container *ngFor="let settings of displayedColumns">
+              <ng-container *ngIf="settings?.propertyName === column">
+                <div fxFlex="1 1 100%" fxLayout="row wrap">
+                  <div fxFlex="1 1 100%" class="cell__heading">
+                    <b>{{ settings?.name }}</b>
+                  </div>
+                  <div fxFlex="1 1 100%" *ngIf="editedElement !== row">
+                    {{ row[column] }}
+                  </div>
+                  <div fxFlex="1 1 100%" *ngIf="editedElement === row">
+                    <mat-form-field fxFlex="1 1 90%" [formGroupName]="index">
+                      <input
+                        matInput
+                        type="text"
+                        (load)="tableFormGroup.get(['columns', index, column]).patchValue(row[column])"
+                        (mousedown)="$event.stopPropagation()"
+                        (click)="onEditInputClick($event)"
+                        [value]="row[column]"
+                        [formControlName]="column"
+                      />
+                    </mat-form-field>
+                  </div>
+                </div>
+              </ng-container>
+            </ng-container>
+          </ng-container>
+        </mat-cell>
+      </ng-container>
+      <!--  #Compact view column  -->
+
+      <mat-header-row *matHeaderRowDef="compactTableIds; sticky: true" class="background-color--app-area-sub"></mat-header-row>
+      <mat-row
+        *matRowDef="let row; columns: compactTableIds"
+        class="row"
+        (mouseover)="onSelectionByMouseMove($event, row)"
+        (mousedown)="onRowMouseDown($event, row)"
+        (click)="expandRow($event, row)"
+        [ngClass]="{ 'row--active': isRowExpanded(row) }"
+      >
+      </mat-row>
+      <mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        style="overflow: hidden; height: 0; min-height: 0; visibility: hidden;"
+        [@detailExpand]="isRowExpanded(row) && expandable ? 'expanded' : 'collapsed'"
+      >
+      </mat-row>
+    </mat-table>
+  </form>
+</ng-template>

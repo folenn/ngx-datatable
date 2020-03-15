@@ -1,0 +1,58 @@
+$header-section-height: 100px;
+
+:host {
+  display: flex;
+  flex-flow: row wrap;
+  height: 100%;
+}
+
+.table {
+
+  &__selection {
+    padding-right: 24px;
+  }
+}
+
+.row {
+
+  &:hover, &--active {
+    background: gray;
+    cursor: pointer;
+
+    .actions {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+  &--active {
+    background: #6187c9;
+  }
+}
+
+.cell {
+
+  &__heading {
+    padding: 5px 0;
+    font-weight: bold;
+  }
+}
+
+.actions {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .1s linear, visibility .1s linear;
+
+  &--active {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.header-section {
+  height: $header-section-height;
+}
+
+.table-container {
+  height: calc(100% - #{$header-section-height});
+  overflow-y: auto;
+}
