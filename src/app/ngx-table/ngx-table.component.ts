@@ -367,10 +367,16 @@ export class NgxTableComponent implements OnChanges, OnDestroy, AfterViewInit {
     event.stopPropagation();
     this.editedElement = null;
     this.newElement = null;
-    this.tableFormGroup.value.columns.forEach(column => (row = { ...row, ...column }));
+    const foundIndex = this.dataSource.data.findIndex(item => item === row);
+    let newData = {};
+    this.tableFormGroup.value.columns.forEach(column => {
+      if (foundIndex >= 0) {
+        newData = {...newData, ...column};
+        console.log(newData);
+      }
+    });
+    this.dataSource.data[foundIndex] = { ...row, ...newData };
     this.dataSource._updateChangeSubscription();
-    this.changeDetectorRef.detectChanges();
-    console.log(this.dataSource, row);
     this.itemSaved.emit(row);
     this.editModeStatus.emit(false);
   }
