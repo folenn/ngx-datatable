@@ -1,11 +1,21 @@
-import { MdoTableColumn, MdoTableComponent } from '@app/modules/mdo-ui/components/mdo-table/mdo-table.component';
-import { ComponentFixture, TestBed, async } from '@angular/core/testing';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { BrowserModule } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import * as faker from 'faker';
-import { SimpleChange, EventEmitter } from '@angular/core';
+import { EventEmitter, SimpleChange } from '@angular/core';
 import { configureTestSuite } from 'ng-bullet';
-import { CoreTestingModule } from '@app/modules/core-testing/core-testing.module';
+import { NgxTableComponent, TableColumn } from './ngx-table.component';
+import { FlexLayoutModule } from '@angular/flex-layout';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSortModule } from '@angular/material';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatTableModule } from '@angular/material/table';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { TableColumnDefinitionDirective } from '../directives/table-column-definition.directive';
+import { VisibleDirective } from '../directives/visible.directive';
 
 const data = [
   {
@@ -23,7 +33,7 @@ const data = [
     birthday: faker.date.future(2)
   }
 ];
-const displayedColumns: MdoTableColumn[] = [
+const displayedColumns: TableColumn[] = [
   {
     name: 'Name',
     propertyName: 'name'
@@ -33,26 +43,41 @@ const displayedColumns: MdoTableColumn[] = [
     propertyName: 'firstName'
   }
 ];
-const detailsColumns: MdoTableColumn[] = [
+const detailsColumns: TableColumn[] = [
   {
     name: 'Birthday',
     propertyName: 'birthday'
   }
 ];
 
-describe('MdoTableComponent', () => {
-  let component: MdoTableComponent;
-  let fixture: ComponentFixture<MdoTableComponent>;
+describe('NgxTableComponent', () => {
+  let component: NgxTableComponent;
+  let fixture: ComponentFixture<NgxTableComponent>;
   let eventEmitterSelectedElement: EventEmitter<any>;
 
   configureTestSuite(() => {
     TestBed.configureTestingModule({
-      imports: [BrowserModule, NoopAnimationsModule, CoreTestingModule],
-      declarations: []
+      imports: [
+        BrowserModule,
+        NoopAnimationsModule,
+        FlexLayoutModule,
+        ReactiveFormsModule,
+        MatIconModule,
+        MatCheckboxModule,
+        MatSortModule,
+        MatFormFieldModule,
+        MatTableModule,
+        MatInputModule,
+        MatButtonModule],
+      declarations: [
+        NgxTableComponent,
+        TableColumnDefinitionDirective,
+        VisibleDirective
+      ],
     });
   });
   beforeEach(() => {
-    fixture = TestBed.createComponent(MdoTableComponent);
+    fixture = TestBed.createComponent(NgxTableComponent);
     component = fixture.componentInstance;
     component.dataSource = data;
     component.displayedColumns = displayedColumns;
@@ -99,7 +124,7 @@ describe('MdoTableComponent', () => {
 
   it('should generate edit form', () => {
     const expected = {
-      columns: [{ firstName: data[0].firstName }, { name: data[0].name }, { birthday: data[0].birthday }]
+      columns: [{firstName: data[0].firstName}, {name: data[0].name}, {birthday: data[0].birthday}]
     };
 
     expect(component.tableFormGroup.value).toEqual(expected);
@@ -134,23 +159,6 @@ describe('MdoTableComponent', () => {
     expect(component.itemCreated.emit).toHaveBeenCalled();
   });
 
-  it('should update edited row/form group and emit value', () => {
-    component.onRowStartedEditing(new MouseEvent('click'), component.dataSource.data[0]);
-    component.tableFormGroup.patchValue({
-      columns: [
-        {
-          firstName: 'test'
-        }
-      ]
-    });
-    component.onRowSaved(new MouseEvent('click'), component.dataSource.data[0]);
-
-    expect(component.editedElement).toBeFalsy();
-    expect(component.newElement).toBeFalsy();
-    expect(component.dataSource.data[0].firstName).toEqual(data[0].firstName);
-    expect(component.itemSaved.emit).toHaveBeenCalledWith({ ...component.dataSource.data[0], firstName: 'test' });
-  });
-
   it('should set edited element and emit event', () => {
     component.onRowStartedEditing(new MouseEvent('click'), component.dataSource.data[0]);
 
@@ -177,7 +185,7 @@ describe('MdoTableComponent', () => {
   });
 
   it('should remove row and emit event', () => {
-    const deletedItem = { ...component.dataSource.data[0] };
+    const deletedItem = {...component.dataSource.data[0]};
     component.onRowDeleted(new MouseEvent('click'), component.dataSource.data[0]);
 
     expect(component.editedElement).toBeFalsy();
@@ -201,10 +209,10 @@ describe('MdoTableComponent', () => {
   }));
 
   it('isRowExpanded-method should compare a given row with the expanded element', async(() => {
-    const selectedElement = { id: 'id1', name: 'name1' };
+    const selectedElement = {id: 'id1', name: 'name1'};
 
     const expandedRow = JSON.parse(JSON.stringify(selectedElement));
-    const otherRow = { id: 'id2', name: 'name2' };
+    const otherRow = {id: 'id2', name: 'name2'};
 
     eventEmitterSelectedElement.subscribe(() => {
       const resultExpandedRow = component.isRowExpanded(expandedRow);
