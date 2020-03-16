@@ -48,7 +48,8 @@
                 <input
                   matInput
                   type="text"
-                  (load)="tableFormGroup.get(['columns', index, column]).patchValue(row[column])"
+                  appVisible
+                  (visible)="tableFormGroup.get(['columns', index, column]).patchValue(row[column])"
                   (mousedown)="$event.stopPropagation()"
                   (click)="onEditInputClick($event)"
                   [value]="row[column]"
@@ -251,7 +252,8 @@
                       <input
                         matInput
                         type="text"
-                        (load)="tableFormGroup.get(['columns', index, column]).patchValue(row[column])"
+                        appVisible
+                        (visible)="tableFormGroup.get(['columns', index, column]).patchValue(row[column])"
                         (mousedown)="$event.stopPropagation()"
                         (click)="onEditInputClick($event)"
                         [value]="row[column]"

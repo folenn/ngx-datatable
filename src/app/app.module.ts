@@ -14,12 +14,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSortModule } from '@angular/material';
 import { MatInputModule } from '@angular/material/input';
 import { FlexLayoutModule } from '@angular/flex-layout';
+import { VisibleDirective } from './directives/visible.directive';
 
 @NgModule({
   declarations: [
     AppComponent,
     NgxTableComponent,
-    TableColumnDefinitionDirective
+    TableColumnDefinitionDirective,
+    VisibleDirective
   ],
   imports: [
     BrowserModule,

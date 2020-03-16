@@ -3,7 +3,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  ContentChildren,
+  ContentChildren, ElementRef,
   EventEmitter,
   Input,
   OnChanges,
@@ -79,6 +79,8 @@ export class NgxTableComponent implements OnChanges, OnDestroy, AfterViewInit {
       this.changeDetectorRef.detectChanges();
     }
   }
+
+  @ViewChild('editInput', {static: false}) editInput: ElementRef;
 
   get dataSource() {
     return this._dataSource;
@@ -372,7 +374,6 @@ export class NgxTableComponent implements OnChanges, OnDestroy, AfterViewInit {
     this.tableFormGroup.value.columns.forEach(column => {
       if (foundIndex >= 0) {
         newData = {...newData, ...column};
-        console.log(newData);
       }
     });
     this.dataSource.data[foundIndex] = { ...row, ...newData };
